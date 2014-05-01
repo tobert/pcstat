@@ -13,6 +13,42 @@ and has some build problems.
     pcstat filename
     pcstat -json filename > data.json
 
+## Testing
+
+The easiest way to tell if this tool is working is to drop caches and do reads on files to
+get things into cache.
+
+``` txt
+atobey@brak ~/src/pcstat $ dd if=/dev/urandom of=testfile bs=1M count=10
+10+0 records in
+10+0 records out
+10485760 bytes (10 MB) copied, 0.805698 s, 13.0 MB/s
+atobey@brak ~/src/pcstat $ ./pcstat testfile
+|--------------------+----------------+------------+-----------+---------|
+| Name               | Size           | Pages      | Cached    | Percent |
+|--------------------+----------------+------------+-----------+---------|
+| testfile           | 10485760       | 2560       | 2560      | 100     |
+|--------------------+----------------+------------+-----------+---------|
+atobey@brak ~/src/pcstat $ echo 1 |sudo tee /proc/sys/vm/drop_caches
+1
+atobey@brak ~/src/pcstat $ ./pcstat testfile
+|--------------------+----------------+------------+-----------+---------|
+| Name               | Size           | Pages      | Cached    | Percent |
+|--------------------+----------------+------------+-----------+---------|
+| testfile           | 10485760       | 2560       | 0         | 0       |
+|--------------------+----------------+------------+-----------+---------|
+atobey@brak ~/src/pcstat $ dd if=/dev/urandom of=testfile bs=4096 seek=10 count=1 conv=notrunc
+1+0 records in
+1+0 records out
+4096 bytes (4.1 kB) copied, 0.000468208 s, 8.7 MB/s
+atobey@brak ~/src/pcstat $ ./pcstat testfile
+|--------------------+----------------+------------+-----------+---------|
+| Name               | Size           | Pages      | Cached    | Percent |
+|--------------------+----------------+------------+-----------+---------|
+| testfile           | 10485760       | 2560       | 1         | 0       |
+|--------------------+----------------+------------+-----------+---------|
+```
+
 ## Building
 
     git clone https://github.com/tobert/pcstat.git
