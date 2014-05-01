@@ -193,7 +193,7 @@ func getMincore(fname string) pcStat {
 		pcs.Name = path.Base(fname)
 	}
 
-	for i, b := range vec {
+	for _, b := range vec {
 		if b%2 == 1 {
 			pcs.Cached++
 		} else {
