@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"syscall"
@@ -12,22 +13,57 @@ import (
 // Bytes: size of the file (from os.File.Stat())
 // Pages: array of booleans: true if cached, false otherwise
 type pcStat struct {
-	Name     string
-	Bytes    int64
-	Pages    int
-	Cached   int
-	Uncached int
-	Status   []bool
+	Name     string `json:filename` // file name as specified on command line
+	Size     int64  `json:size`     // file size in bytes
+	Pages    int    `json:pages`    // total memory pages
+	Cached   int    `json:cached`   // number of pages that are cached
+	Uncached int    `json:uncached` // number of pages that are not cached
+	Status   []bool `json:status`   // true for cached page, false otherwise
+}
+
+type pcStatList []pcStat
+
+var jsonFlag bool
+
+func init() {
+	flag.BoolVar(&jsonFlag, "json", false, "return data in JSON format")
 }
 
 func main() {
 	flag.Parse()
-	for _, fname := range flag.Args() {
-		pcs := getMincore(fname)
-		percent := (pcs.Cached / pcs.Pages) * 100
-		log.Printf("%s: Size: %d bytes, Pages Cached %d, Uncached: %d, %d%% cached\n",
-			pcs.Name, pcs.Bytes, pcs.Cached, pcs.Uncached, percent)
+
+	stats := make(pcStatList, len(flag.Args()))
+
+	for i, fname := range flag.Args() {
+		stats[i] = getMincore(fname)
 	}
+
+	if jsonFlag {
+		log.Fatal("Not implemented yet.")
+	} else {
+		stats.formatText()
+	}
+}
+
+func (stats pcStatList) formatText() {
+	// TODO: set a maximum padding length, possibly based on terminal info?
+	maxName := 8
+	for _, pcs := range stats {
+		if len(pcs.Name) > maxName {
+			maxName = len(pcs.Name)
+		}
+	}
+
+	hr := "|--------------------+----------------+------------+-----------+---------|"
+	fmt.Println(hr)
+	fmt.Println("| Name               | Size           | Pages      | Cached    | Percent |")
+	fmt.Println(hr)
+
+	for _, pcs := range stats {
+		percent := (pcs.Cached / pcs.Pages) * 100
+		fmt.Printf("| %-19s| %-15d| %-11d| %-10d| %-7d |\n", pcs.Name, pcs.Size, pcs.Pages, pcs.Cached, percent)
+	}
+	fmt.Println(hr)
 }
 
 func getMincore(fname string) pcStat {
