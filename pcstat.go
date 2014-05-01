@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -13,20 +14,22 @@ import (
 // Bytes: size of the file (from os.File.Stat())
 // Pages: array of booleans: true if cached, false otherwise
 type pcStat struct {
-	Name     string `json:filename` // file name as specified on command line
-	Size     int64  `json:size`     // file size in bytes
-	Pages    int    `json:pages`    // total memory pages
-	Cached   int    `json:cached`   // number of pages that are cached
-	Uncached int    `json:uncached` // number of pages that are not cached
-	Status   []bool `json:status`   // true for cached page, false otherwise
+	Name     string `json:"filename"` // file name as specified on command line
+	Size     int64  `json:"size"`     // file size in bytes
+	Pages    int    `json:"pages"`    // total memory pages
+	Cached   int    `json:"cached"`   // number of pages that are cached
+	Uncached int    `json:"uncached"` // number of pages that are not cached
+	PPStat   []bool `json:"status"`   // per-page status, true if cached, false otherwise
 }
 
 type pcStatList []pcStat
 
 var jsonFlag bool
+var ppsFlag bool
 
 func init() {
 	flag.BoolVar(&jsonFlag, "json", false, "return data in JSON format")
+	flag.BoolVar(&ppsFlag, "pps", false, "include the per-page status in JSON output")
 }
 
 func main() {
@@ -39,7 +42,7 @@ func main() {
 	}
 
 	if jsonFlag {
-		log.Fatal("Not implemented yet.")
+		stats.formatJson()
 	} else {
 		stats.formatText()
 	}
@@ -64,6 +67,24 @@ func (stats pcStatList) formatText() {
 		fmt.Printf("| %-19s| %-15d| %-11d| %-10d| %-7d |\n", pcs.Name, pcs.Size, pcs.Pages, pcs.Cached, percent)
 	}
 	fmt.Println(hr)
+}
+
+func (stats pcStatList) formatJson() {
+	// only show the per-page cache status if it's explicitly enabled
+	// an empty "status": [] field will end up in the JSON but that's
+	// not so bad since parsers will end up with support for both formats
+	if !ppsFlag {
+		for i, _ := range stats {
+			stats[i].PPStat = []bool{}
+		}
+	}
+
+	b, err := json.Marshal(stats)
+	if err != nil {
+		log.Fatalf("JSON formatting failed: %s\n", err)
+	}
+	os.Stdout.Write(b)
+	fmt.Println("")
 }
 
 func getMincore(fname string) pcStat {
@@ -106,10 +127,10 @@ func getMincore(fname string) pcStat {
 	// expose no bitshift only bool
 	for i, b := range vec {
 		if b%2 == 1 {
-			pcs.Status[i] = true
+			pcs.PPStat[i] = true
 			pcs.Cached++
 		} else {
-			pcs.Status[i] = false
+			pcs.PPStat[i] = false
 			pcs.Uncached++
 		}
 	}
