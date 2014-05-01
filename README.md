@@ -1,4 +1,4 @@
-# pcstat - get page cache statistics for files
+## pcstat - get page cache statistics for files
 
 A common question when tuning databases and other IO-intensive applications is,
 "is Linux caching my data or not?" pcstat gets that information for you using
