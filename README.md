@@ -8,6 +8,19 @@ The fincore application from [linux-ftools](https://code.google.com/p/linux-ftoo
 same thing and I read its source code. I chose not to use it because it appears to be abandoned
 and has some build problems.
 
+I wrote this is so that Apache Cassandra users can see if ssTables are being
+cached. If $GOPATH/bin is in your PATH, this will get it installed:
+
+    go get github.com/tobert/pcstat
+    pcstat /var/lib/cassandra/data/*/*/*-Data.db
+
+Alternatively, throw a binary on a webserver and pull it down with wget.
+The URL below is real but not guaranteed to work.
+
+    wget http://tobert.org/downloads/pcstat
+    chmod 755 pcstat
+    ./pcstat /var/lib/cassandra/data/*/*/*-Data.db
+
 ## Usage
 
 Command-line arguments are described below. Every argument following the program
