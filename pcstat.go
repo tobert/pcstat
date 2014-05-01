@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
+	"strings"
 	"syscall"
 	"unsafe"
 )
@@ -24,10 +26,9 @@ type pcStat struct {
 
 type pcStatList []pcStat
 
-var terseFlag bool
-var nohdrFlag bool
-var jsonFlag bool
-var ppsFlag bool
+var (
+	terseFlag, nohdrFlag, jsonFlag, ppsFlag, bnameFlag bool
+)
 
 func init() {
 	// TODO: error on useless/broken combinations
@@ -35,6 +36,7 @@ func init() {
 	flag.BoolVar(&nohdrFlag, "nohdr", false, "omit the header from terse & text output")
 	flag.BoolVar(&jsonFlag, "json", false, "return data in JSON format")
 	flag.BoolVar(&ppsFlag, "pps", false, "include the per-page status in JSON output")
+	flag.BoolVar(&bnameFlag, "bname", false, "convert paths to basename to narrow the output")
 }
 
 func main() {
@@ -64,16 +66,19 @@ func (stats pcStatList) formatText() {
 		}
 	}
 
-	hr := "|--------------------+----------------+------------+-----------+---------|"
+	pad := strings.Repeat("-", maxName+2)
+	hr := fmt.Sprintf("|%s+----------------+------------+-----------+---------|", pad)
 	fmt.Println(hr)
 	if !nohdrFlag {
-		fmt.Println("| Name               | Size           | Pages      | Cached    | Percent |")
+		pad = strings.Repeat(" ", maxName-4)
+		fmt.Printf("| Name%s | Size           | Pages      | Cached    | Percent |\n", pad)
 		fmt.Println(hr)
 	}
 
 	for _, pcs := range stats {
 		percent := (pcs.Cached / pcs.Pages) * 100
-		fmt.Printf("| %-19s| %-15d| %-11d| %-10d| %-7d |\n", pcs.Name, pcs.Size, pcs.Pages, pcs.Cached, percent)
+		pad = strings.Repeat(" ", maxName-len(pcs.Name))
+		fmt.Printf("| %s%s | %-15d| %-11d| %-10d| %-7d |\n", pcs.Name, pad, pcs.Size, pcs.Pages, pcs.Cached, percent)
 	}
 
 	fmt.Println(hr)
@@ -143,6 +148,10 @@ func getMincore(fname string) pcStat {
 	defer syscall.Munmap(mmap)
 
 	pcs := pcStat{fname, fi.Size(), int(vecsz), 0, 0, make([]bool, vecsz)}
+
+	if bnameFlag {
+		pcs.Name = path.Base(fname)
+	}
 
 	// expose no bitshift only bool
 	for i, b := range vec {
