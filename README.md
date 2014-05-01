@@ -97,7 +97,7 @@ From the mincore(2) man page:
 
 ## Author
 
-Al Tobey <tobert@datastax.com> @AlTobey
+Al Tobey <atobey@datastax.com> @AlTobey
 
 ## License
 
