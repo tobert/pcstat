@@ -9,10 +9,11 @@ import (
 )
 
 // pcStat: page cache status
-// Info: see os.FileInfo
+// Bytes: size of the file (from os.File.Stat())
 // Pages: array of booleans: true if cached, false otherwise
 type pcStat struct {
-	Info     os.FileInfo
+	Name     string
+	Bytes    int64
 	Pages    int
 	Cached   int
 	Uncached int
@@ -25,7 +26,7 @@ func main() {
 		pcs := getMincore(fname)
 		percent := (pcs.Cached / pcs.Pages) * 100
 		log.Printf("%s: Size: %d bytes, Pages Cached %d, Uncached: %d, %d%% cached\n",
-			fname, pcs.Info.Size(), pcs.Cached, pcs.Uncached, percent)
+			pcs.Name, pcs.Bytes, pcs.Cached, pcs.Uncached, percent)
 	}
 }
 
@@ -64,7 +65,7 @@ func getMincore(fname string) pcStat {
 	}
 	defer syscall.Munmap(mmap)
 
-	pcs := pcStat{fi, int(vecsz), 0, 0, make([]bool, vecsz)}
+	pcs := pcStat{fname, fi.Size(), int(vecsz), 0, 0, make([]bool, vecsz)}
 
 	// expose no bitshift only bool
 	for i, b := range vec {
