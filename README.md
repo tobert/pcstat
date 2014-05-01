@@ -18,7 +18,7 @@ and has some build problems.
 The easiest way to tell if this tool is working is to drop caches and do reads on files to
 get things into cache.
 
-``` txt
+```
 atobey@brak ~/src/pcstat $ dd if=/dev/urandom of=testfile bs=1M count=10
 10+0 records in
 10+0 records out
