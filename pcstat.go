@@ -1,5 +1,12 @@
 package main
 
+// pcstat.go - page cache stat
+// uses the mincore(2) syscall to find out which pages (almost always 4k)
+// of a file are currently cached in memory
+//
+// Copyright 2014 Albert P. Tobey <atobey@datastax.com> @AlTobey
+// License: Apache 2.0
+
 import (
 	"encoding/json"
 	"flag"
@@ -42,6 +49,9 @@ func init() {
 func main() {
 	flag.Parse()
 
+	// all non-flag arguments are considered to be filenames
+	// this works well with shell globbing
+	// file order is preserved throughout this program
 	stats := make(pcStatList, len(flag.Args()))
 
 	for i, fname := range flag.Args() {
@@ -58,7 +68,7 @@ func main() {
 }
 
 func (stats pcStatList) formatText() {
-	// TODO: set a maximum padding length, possibly based on terminal info?
+	// find the longest filename in the data for calculating whitespace padding
 	maxName := 8
 	for _, pcs := range stats {
 		if len(pcs.Name) > maxName {
@@ -66,9 +76,13 @@ func (stats pcStatList) formatText() {
 		}
 	}
 
+	// create horizontal grid line
 	pad := strings.Repeat("-", maxName+2)
 	hr := fmt.Sprintf("|%s+----------------+------------+-----------+---------|", pad)
+
 	fmt.Println(hr)
+
+	// -nohdr may be chosen to save 2 lines of precious vertical space
 	if !nohdrFlag {
 		pad = strings.Repeat(" ", maxName-4)
 		fmt.Printf("| Name%s | Size           | Pages      | Cached    | Percent |\n", pad)
@@ -76,9 +90,15 @@ func (stats pcStatList) formatText() {
 	}
 
 	for _, pcs := range stats {
-		percent := (pcs.Cached / pcs.Pages) * 100
+		// convert to float for the occasional sparsely-cached file
+		// see the README.md for how to produce one
+		percent := (float64(pcs.Cached) / float64(pcs.Pages)) * 100.00
 		pad = strings.Repeat(" ", maxName-len(pcs.Name))
-		fmt.Printf("| %s%s | %-15d| %-11d| %-10d| %-7d |\n", pcs.Name, pad, pcs.Size, pcs.Pages, pcs.Cached, percent)
+
+		// %07.3f was chosen to make it easy to scan the percentages vertically
+		// I tried a few different formats only this one kept the decimals aligned
+		fmt.Printf("| %s%s | %-15d| %-11d| %-10d| %07.3f |\n",
+			pcs.Name, pad, pcs.Size, pcs.Pages, pcs.Cached, percent)
 	}
 
 	fmt.Println(hr)
@@ -95,15 +115,6 @@ func (stats pcStatList) formatTerse() {
 }
 
 func (stats pcStatList) formatJson() {
-	// only show the per-page cache status if it's explicitly enabled
-	// an empty "status": [] field will end up in the JSON but that's
-	// not so bad since parsers will end up with support for both formats
-	if !ppsFlag {
-		for i, _ := range stats {
-			stats[i].PPStat = []bool{}
-		}
-	}
-
 	b, err := json.Marshal(stats)
 	if err != nil {
 		log.Fatalf("JSON formatting failed: %s\n", err)
@@ -127,6 +138,7 @@ func getMincore(fname string) pcStat {
 		log.Fatalf("%s appears to be 0 bytes in length\n", fname)
 	}
 
+	// []byte slice
 	mmap, err := syscall.Mmap(int(f.Fd()), 0, int(fi.Size()), syscall.PROT_NONE, syscall.MAP_SHARED)
 	if err != nil {
 		log.Fatalf("Could not mmap file '%s': %s\n", fname, err)
@@ -138,28 +150,53 @@ func getMincore(fname string) pcStat {
 	vecsz := (fi.Size() + int64(os.Getpagesize()) - 1) / int64(os.Getpagesize())
 	vec := make([]byte, vecsz)
 
+	// get all of the arguments to the mincore syscall converted to uintptr
 	mmap_ptr := uintptr(unsafe.Pointer(&mmap[0]))
 	size_ptr := uintptr(fi.Size())
 	vec_ptr := uintptr(unsafe.Pointer(&vec[0]))
+
+	// use Go's ASM to submit directly to the kernel, no C wrapper needed
+	// mincore(2): int mincore(void *addr, size_t length, unsigned char *vec);
+	// 0 on success, takes the pointer to the mmap, a size, which is the
+	// size that came from f.Stat(), and the vector, which is a pointer
+	// to the memory behind an []byte
+	// this writes a snapshot of the data into vec which a list of 8-bit flags
+	// with the LSB set if the page in that position is currently in VFS cache
 	ret, _, err := syscall.RawSyscall(syscall.SYS_MINCORE, mmap_ptr, size_ptr, vec_ptr)
 	if ret != 0 {
 		log.Fatalf("syscall SYS_MINCORE failed: %s", err)
 	}
 	defer syscall.Munmap(mmap)
 
-	pcs := pcStat{fname, fi.Size(), int(vecsz), 0, 0, make([]bool, vecsz)}
+	pcs := pcStat{fname, fi.Size(), int(vecsz), 0, 0, []bool{}}
 
+	// only export the per-page cache mapping if it's explicitly enabled
+	// an empty "status": [] field, but NBD.
+	if ppsFlag {
+		pcs.PPStat = make([]bool, vecsz)
+
+		// there is no bitshift only bool
+		for i, b := range vec {
+			if b%2 == 1 {
+				pcs.PPStat[i] = true
+			} else {
+				pcs.PPStat[i] = false
+			}
+		}
+
+	}
+
+	// convert long paths to their basename with the -bname flag
+	// this overwrites the original filename in pcs but it doesn't matter since
+	// it's not used to access the file again -- and should not be!
 	if bnameFlag {
 		pcs.Name = path.Base(fname)
 	}
 
-	// expose no bitshift only bool
 	for i, b := range vec {
 		if b%2 == 1 {
-			pcs.PPStat[i] = true
 			pcs.Cached++
 		} else {
-			pcs.PPStat[i] = false
 			pcs.Uncached++
 		}
 	}

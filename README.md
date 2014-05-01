@@ -10,8 +10,23 @@ and has some build problems.
 
 ## Usage
 
-    pcstat filename
-    pcstat -json filename > data.json
+Command-line arguments are described below. Every argument following the program
+flags is considered a file for inspection.
+
+```
+pcstat <-json <-pps>|-terse|-default> <-nohdr> <-bname> file file file
+ -json output will be JSON
+   -pps include the per-page information in the output (can be huge!)
+ -terse print terse machine-parseable output
+ -default print ascii tables
+ -nohdr don't print the column header in terse or default format
+ -bname use basename(file) in the output (use for long paths)
+
+Examples:
+ pcstat filename
+ pcstat -json filename > data.json
+
+```
 
 ## Testing
 
@@ -69,7 +84,7 @@ From the mincore(2) man page:
 
 ## Author
 
-Al Tobey <tobert@gmail.com> @AlTobey
+Al Tobey <tobert@datastax.com> @AlTobey
 
 ## License
 
