@@ -76,7 +76,7 @@ func (stats pcStatList) formatText() {
 	}
 
 	for _, pcs := range stats {
-		percent := (pcs.Cached / pcs.Pages) * 100
+		percent := int32((float64(pcs.Cached) / float64(pcs.Pages)) * 100)
 		pad = strings.Repeat(" ", maxName-len(pcs.Name))
 		fmt.Printf("| %s%s | %-15d| %-11d| %-10d| %-7d |\n", pcs.Name, pad, pcs.Size, pcs.Pages, pcs.Cached, percent)
 	}
@@ -89,7 +89,7 @@ func (stats pcStatList) formatTerse() {
 		fmt.Println("name,size,pages,cached,percent")
 	}
 	for _, pcs := range stats {
-		percent := (pcs.Cached / pcs.Pages) * 100
+		percent := int32((float64(pcs.Cached) / float64(pcs.Pages)) * 100)
 		fmt.Printf("%s,%d,%d,%d,%d\n", pcs.Name, pcs.Size, pcs.Pages, pcs.Cached, percent)
 	}
 }
