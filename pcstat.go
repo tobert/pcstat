@@ -24,10 +24,15 @@ type pcStat struct {
 
 type pcStatList []pcStat
 
+var terseFlag bool
+var nohdrFlag bool
 var jsonFlag bool
 var ppsFlag bool
 
 func init() {
+	// TODO: error on useless/broken combinations
+	flag.BoolVar(&terseFlag, "terse", false, "show terse output")
+	flag.BoolVar(&nohdrFlag, "nohdr", false, "omit the header from terse & text output")
 	flag.BoolVar(&jsonFlag, "json", false, "return data in JSON format")
 	flag.BoolVar(&ppsFlag, "pps", false, "include the per-page status in JSON output")
 }
@@ -43,6 +48,8 @@ func main() {
 
 	if jsonFlag {
 		stats.formatJson()
+	} else if terseFlag {
+		stats.formatTerse()
 	} else {
 		stats.formatText()
 	}
@@ -59,14 +66,27 @@ func (stats pcStatList) formatText() {
 
 	hr := "|--------------------+----------------+------------+-----------+---------|"
 	fmt.Println(hr)
-	fmt.Println("| Name               | Size           | Pages      | Cached    | Percent |")
-	fmt.Println(hr)
+	if !nohdrFlag {
+		fmt.Println("| Name               | Size           | Pages      | Cached    | Percent |")
+		fmt.Println(hr)
+	}
 
 	for _, pcs := range stats {
 		percent := (pcs.Cached / pcs.Pages) * 100
 		fmt.Printf("| %-19s| %-15d| %-11d| %-10d| %-7d |\n", pcs.Name, pcs.Size, pcs.Pages, pcs.Cached, percent)
 	}
+
 	fmt.Println(hr)
+}
+
+func (stats pcStatList) formatTerse() {
+	if !nohdrFlag {
+		fmt.Println("name,size,pages,cached,percent")
+	}
+	for _, pcs := range stats {
+		percent := (pcs.Cached / pcs.Pages) * 100
+		fmt.Printf("%s,%d,%d,%d,%d\n", pcs.Name, pcs.Size, pcs.Pages, pcs.Cached, percent)
+	}
 }
 
 func (stats pcStatList) formatJson() {
