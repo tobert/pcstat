@@ -38,12 +38,13 @@ import (
 // Bytes: size of the file (from os.File.Stat())
 // Pages: array of booleans: true if cached, false otherwise
 type pcStat struct {
-	Name     string `json:"filename"` // file name as specified on command line
-	Size     int64  `json:"size"`     // file size in bytes
-	Pages    int    `json:"pages"`    // total memory pages
-	Cached   int    `json:"cached"`   // number of pages that are cached
-	Uncached int    `json:"uncached"` // number of pages that are not cached
-	PPStat   []bool `json:"status"`   // per-page status, true if cached, false otherwise
+	Name     string  `json:"filename"` // file name as specified on command line
+	Size     int64   `json:"size"`     // file size in bytes
+	Pages    int     `json:"pages"`    // total memory pages
+	Cached   int     `json:"cached"`   // number of pages that are cached
+	Uncached int     `json:"uncached"` // number of pages that are not cached
+	Percent  float64 `json:"percent"`  // percentage of pages cached
+	PPStat   []bool  `json:"status"`   // per-page status, true if cached, false otherwise
 }
 
 type pcStatList []pcStat
@@ -105,15 +106,12 @@ func (stats pcStatList) formatText() {
 	}
 
 	for _, pcs := range stats {
-		// convert to float for the occasional sparsely-cached file
-		// see the README.md for how to produce one
-		percent := (float64(pcs.Cached) / float64(pcs.Pages)) * 100.00
 		pad = strings.Repeat(" ", maxName-len(pcs.Name))
 
 		// %07.3f was chosen to make it easy to scan the percentages vertically
 		// I tried a few different formats only this one kept the decimals aligned
 		fmt.Printf("| %s%s | %-15d| %-11d| %-10d| %07.3f |\n",
-			pcs.Name, pad, pcs.Size, pcs.Pages, pcs.Cached, percent)
+			pcs.Name, pad, pcs.Size, pcs.Pages, pcs.Cached, pcs.Percent)
 	}
 
 	fmt.Println(hr)
@@ -124,8 +122,8 @@ func (stats pcStatList) formatTerse() {
 		fmt.Println("name,size,pages,cached,percent")
 	}
 	for _, pcs := range stats {
-		percent := (pcs.Cached / pcs.Pages) * 100
-		fmt.Printf("%s,%d,%d,%d,%d\n", pcs.Name, pcs.Size, pcs.Pages, pcs.Cached, percent)
+		fmt.Printf("%s,%d,%d,%d,%g\n",
+			pcs.Name, pcs.Size, pcs.Pages, pcs.Cached, pcs.Percent)
 	}
 }
 
@@ -183,7 +181,7 @@ func getMincore(fname string) pcStat {
 	}
 	defer syscall.Munmap(mmap)
 
-	pcs := pcStat{fname, fi.Size(), int(vecsz), 0, 0, []bool{}}
+	pcs := pcStat{fname, fi.Size(), int(vecsz), 0, 0, 0.0, []bool{}}
 
 	// only export the per-page cache mapping if it's explicitly enabled
 	// an empty "status": [] field, but NBD.
@@ -215,6 +213,10 @@ func getMincore(fname string) pcStat {
 			pcs.Uncached++
 		}
 	}
+
+	// convert to float for the occasional sparsely-cached file
+	// see the README.md for how to produce one
+	pcs.Percent = (float64(pcs.Cached) / float64(pcs.Pages)) * 100.00
 
 	return pcs
 }
