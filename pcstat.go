@@ -31,6 +31,7 @@ import (
 	"path"
 	"strings"
 	"syscall"
+	"time"
 	"unsafe"
 )
 
@@ -38,13 +39,14 @@ import (
 // Bytes: size of the file (from os.File.Stat())
 // Pages: array of booleans: true if cached, false otherwise
 type pcStat struct {
-	Name     string  `json:"filename"` // file name as specified on command line
-	Size     int64   `json:"size"`     // file size in bytes
-	Pages    int     `json:"pages"`    // total memory pages
-	Cached   int     `json:"cached"`   // number of pages that are cached
-	Uncached int     `json:"uncached"` // number of pages that are not cached
-	Percent  float64 `json:"percent"`  // percentage of pages cached
-	PPStat   []bool  `json:"status"`   // per-page status, true if cached, false otherwise
+	Name     string    `json:"filename"` // file name as specified on command line
+	Size     int64     `json:"size"`     // file size in bytes
+	Mtime    time.Time `json:"mtime"`    // last modification time of the file
+	Pages    int       `json:"pages"`    // total memory pages
+	Cached   int       `json:"cached"`   // number of pages that are cached
+	Uncached int       `json:"uncached"` // number of pages that are not cached
+	Percent  float64   `json:"percent"`  // percentage of pages cached
+	PPStat   []bool    `json:"status"`   // per-page status, true if cached, false otherwise
 }
 
 type pcStatList []pcStat
@@ -119,11 +121,12 @@ func (stats pcStatList) formatText() {
 
 func (stats pcStatList) formatTerse() {
 	if !nohdrFlag {
-		fmt.Println("name,size,pages,cached,percent")
+		fmt.Println("name,size,mtime,pages,cached,percent")
 	}
 	for _, pcs := range stats {
-		fmt.Printf("%s,%d,%d,%d,%g\n",
-			pcs.Name, pcs.Size, pcs.Pages, pcs.Cached, pcs.Percent)
+		mtime := pcs.Mtime.Unix()
+		fmt.Printf("%s,%d,%d,%d,%d,%g\n",
+			pcs.Name, pcs.Size, mtime, pcs.Pages, pcs.Cached, pcs.Percent)
 	}
 }
 
@@ -181,7 +184,7 @@ func getMincore(fname string) pcStat {
 	}
 	defer syscall.Munmap(mmap)
 
-	pcs := pcStat{fname, fi.Size(), int(vecsz), 0, 0, 0.0, []bool{}}
+	pcs := pcStat{fname, fi.Size(), fi.ModTime(), int(vecsz), 0, 0, 0.0, []bool{}}
 
 	// only export the per-page cache mapping if it's explicitly enabled
 	// an empty "status": [] field, but NBD.
