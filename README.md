@@ -14,10 +14,14 @@ cached. If $GOPATH/bin is in your PATH, this will get it installed:
     go get github.com/tobert/pcstat
     pcstat /var/lib/cassandra/data/*/*/*-Data.db
 
-Alternatively, throw a binary on a webserver and pull it down with wget.
-The URL below is real but not guaranteed to work.
+If you don't want to mess around with building the software, binaries are provided
+in orphaned branches so you can pull them down from Github with curl/wget.
 
-    wget http://tobert.org/downloads/pcstat
+    if [ $(uname -m) == "x86_64" ] ; then
+        curl -L -o pcstat https://github.com/tobert/pcstat/raw/2014-05-02-01/pcstat.x86_64
+    else
+        curl -L -o pcstat https://github.com/tobert/pcstat/raw/2014-05-02-01/pcstat.x86_32
+    fi
     chmod 755 pcstat
     ./pcstat /var/lib/cassandra/data/*/*/*-Data.db
 
