@@ -148,6 +148,11 @@ func getMincore(fname string) pcStat {
 	}
 	defer f.Close()
 
+	// TEST TODO: verify behavior when the file size is changing quickly
+	// while this function is running. I assume that the size parameter to
+	// mincore will prevent overruns of the output vector, but it's not clear
+	// what will be in there when the file is truncated between here and the
+	// mincore() call.
 	fi, err := f.Stat()
 	if err != nil {
 		log.Fatalf("Could not stat file %s: %s\n", fname, err)
@@ -204,7 +209,6 @@ func getMincore(fname string) pcStat {
 				pcs.PPStat[i] = false
 			}
 		}
-
 	}
 
 	// convert long paths to their basename with the -bname flag
