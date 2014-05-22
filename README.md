@@ -36,13 +36,49 @@ pcstat <-json <-pps>|-terse|-default> <-nohdr> <-bname> file file file
    -pps include the per-page information in the output (can be huge!)
  -terse print terse machine-parseable output
  -default print ascii tables
+ -histo print a histogram using unicode block characters
  -nohdr don't print the column header in terse or default format
  -bname use basename(file) in the output (use for long paths)
+```
 
-Examples:
- pcstat filename
- pcstat -json filename > data.json
+## Examples
 
+```
+atobey@brak ~ $ pcstat testfile3
+|-----------+----------------+------------+-----------+---------|
+| Name      | Size           | Pages      | Cached    | Percent |
+|-----------+----------------+------------+-----------+---------|
+| testfile3 | 102401024      | 25001      | 60        | 000.240 |
+|-----------+----------------+------------+-----------+---------|
+```
+
+```
+atobey@brak ~ $ pcstat -json testfile3 |json_pp
+[
+ {
+   "filename":  "testfile3",
+   "size":      102401024,
+   "timestamp": "2014-05-22T13:57:19.971348936Z",
+   "mtime":     "2014-05-22T12:20:47.940163295Z",
+   "pages":     25001,
+   "cached":    60,
+   "uncached":  24941,
+   "percent":   0.23999040038398464,
+   "status":    []
+ }
+]
+```
+
+```
+atobey@brak ~ $ pcstat -bname -histo *
+LICENSE          3 ▁▁▁
+README.md        2 ██
+pcstat         749 █████████████████████████████████████████████████
+pcstat.go        3 ███
+spark            1 ▁
+testfile      2560 ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+testfile2        3 ▁▁▁
+testfile3    25001 ▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
 ```
 
 ## Testing
