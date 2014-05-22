@@ -252,7 +252,7 @@ func getMincore(fname string, retpps bool) pcStat {
 	// to the memory behind an []byte
 	// this writes a snapshot of the data into vec which a list of 8-bit flags
 	// with the LSB set if the page in that position is currently in VFS cache
-	ret, _, err := syscall.RawSyscall(syscall.SYS_MINCORE, mmap_ptr, size_ptr, vec_ptr)
+	ret, _, err := syscall.Syscall(syscall.SYS_MINCORE, mmap_ptr, size_ptr, vec_ptr)
 	if ret != 0 {
 		log.Fatalf("syscall SYS_MINCORE failed: %s", err)
 	}
