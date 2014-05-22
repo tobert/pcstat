@@ -81,7 +81,7 @@ func main() {
 	stats := make(pcStatList, len(flag.Args()))
 
 	for i, fname := range flag.Args() {
-		stats[i] = getMincore(fname)
+		stats[i] = getMincore(fname, ppsFlag || histoFlag)
 	}
 
 	if jsonFlag {
@@ -89,7 +89,6 @@ func main() {
 	} else if terseFlag {
 		stats.formatTerse()
 	} else if histoFlag {
-		ppsFlag = true // always enable pps for histogram display
 		stats.formatHistogram()
 	} else {
 		stats.formatText()
@@ -97,29 +96,23 @@ func main() {
 }
 
 func (stats pcStatList) formatText() {
-	// find the longest filename in the data for calculating whitespace padding
-	maxName := 8
-	for _, pcs := range stats {
-		if len(pcs.Name) > maxName {
-			maxName = len(pcs.Name)
-		}
-	}
+	maxName := stats.maxName()
 
 	// create horizontal grid line
-	pad := strings.Repeat("-", maxName+2)
+	pad := strings.Repeat("-", len(maxName)+2)
 	hr := fmt.Sprintf("|%s+----------------+------------+-----------+---------|", pad)
 
 	fmt.Println(hr)
 
 	// -nohdr may be chosen to save 2 lines of precious vertical space
 	if !nohdrFlag {
-		pad = strings.Repeat(" ", maxName-4)
+		pad = strings.Repeat(" ", len(maxName)-4)
 		fmt.Printf("| Name%s | Size           | Pages      | Cached    | Percent |\n", pad)
 		fmt.Println(hr)
 	}
 
 	for _, pcs := range stats {
-		pad = strings.Repeat(" ", maxName-len(pcs.Name))
+		pad = strings.Repeat(" ", len(maxName)-len(pcs.Name))
 
 		// %07.3f was chosen to make it easy to scan the percentages vertically
 		// I tried a few different formats only this one kept the decimals aligned
@@ -151,12 +144,68 @@ func (stats pcStatList) formatJson() {
 	fmt.Println("")
 }
 
+// references:
+// http://www.unicode.org/charts/PDF/U2580.pdf
+// https://github.com/puppetlabs/mcollective-puppet-agent/blob/master/application/puppet.rb#L143
+// https://github.com/holman/spark
 func (stats pcStatList) formatHistogram() {
 	ws := getwinsize()
-	fmt.Printf("%v\n", ws)
+	maxName := stats.maxName()
+
+	// block elements are wider than characters, so only use 1/2 the available columns
+	buckets := (int(ws.ws_col)-len(maxName))/2 - 10
+
+	for _, pcs := range stats {
+		pad := strings.Repeat(" ", len(maxName)-len(pcs.Name))
+		fmt.Printf("%s%s % 8d ", pcs.Name, pad, pcs.Pages)
+
+		// when there is enough room display on/off for every page
+		if buckets > pcs.Pages {
+			for _, v := range pcs.PPStat {
+				if v {
+					fmt.Print("\u2588") // full block = 100%
+				} else {
+					fmt.Print("\u2581") // lower 1/8 block
+				}
+			}
+		} else {
+			bsz := pcs.Pages / buckets
+			fbsz := float64(bsz)
+			total := 0.0
+			for i, v := range pcs.PPStat {
+				if v {
+					total++
+				}
+
+				if (i+1)%bsz == 0 {
+					avg := total / fbsz
+					if total == 0 {
+						fmt.Print("\u2581") // lower 1/8 block = 0
+					} else if avg < 16.67 {
+						fmt.Print("\u2582") // lower 2/8 block
+					} else if avg < 33.33 {
+						fmt.Print("\u2583") // lower 3/8 block
+					} else if avg < 50.00 {
+						fmt.Print("\u2584") // lower 4/8 block
+					} else if avg < 66.66 {
+						fmt.Print("\u2585") // lower 5/8 block
+					} else if avg < 83.33 {
+						fmt.Print("\u2586") // lower 6/8 block
+					} else if avg < 1.00 {
+						fmt.Print("\u2587") // lower 7/8 block
+					} else {
+						fmt.Print("\u2588") // full block = 100%
+					}
+
+					total = 0
+				}
+			}
+		}
+		fmt.Println("")
+	}
 }
 
-func getMincore(fname string) pcStat {
+func getMincore(fname string, retpps bool) pcStat {
 	f, err := os.Open(fname)
 	if err != nil {
 		log.Fatalf("Could not open file '%s' for read: %s\n", fname, err)
@@ -213,7 +262,7 @@ func getMincore(fname string) pcStat {
 
 	// only export the per-page cache mapping if it's explicitly enabled
 	// an empty "status": [] field, but NBD.
-	if ppsFlag {
+	if retpps {
 		pcs.PPStat = make([]bool, vecsz)
 
 		// there is no bitshift only bool
@@ -257,4 +306,16 @@ func getwinsize() winsize {
 		log.Fatalf("TIOCGWINSZ failed to get terminal size: %s\n", err)
 	}
 	return ws
+}
+
+// getLongestName returns the len of longest filename in the stat list
+// if the bnameFlag is set, this will return the max basename len
+func (stats pcStatList) maxName() string {
+	var maxName string
+	for _, pcs := range stats {
+		if len(pcs.Name) > len(maxName) {
+			maxName = pcs.Name
+		}
+	}
+	return maxName
 }
