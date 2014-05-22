@@ -52,8 +52,14 @@ type pcStat struct {
 
 type pcStatList []pcStat
 
+// adapted from https://groups.google.com/d/msg/golang-nuts/8d4pOPmSL9Q/H6WUqbGNELEJ
+type winsize struct {
+	ws_row, ws_col       uint16
+	ws_xpixel, ws_ypixel uint16
+}
+
 var (
-	terseFlag, nohdrFlag, jsonFlag, ppsFlag, bnameFlag bool
+	terseFlag, nohdrFlag, jsonFlag, ppsFlag, histoFlag, bnameFlag bool
 )
 
 func init() {
@@ -62,6 +68,7 @@ func init() {
 	flag.BoolVar(&nohdrFlag, "nohdr", false, "omit the header from terse & text output")
 	flag.BoolVar(&jsonFlag, "json", false, "return data in JSON format")
 	flag.BoolVar(&ppsFlag, "pps", false, "include the per-page status in JSON output")
+	flag.BoolVar(&histoFlag, "histo", false, "print a simple histogram instead of raw data")
 	flag.BoolVar(&bnameFlag, "bname", false, "convert paths to basename to narrow the output")
 }
 
@@ -81,6 +88,9 @@ func main() {
 		stats.formatJson()
 	} else if terseFlag {
 		stats.formatTerse()
+	} else if histoFlag {
+		ppsFlag = true // always enable pps for histogram display
+		stats.formatHistogram()
 	} else {
 		stats.formatText()
 	}
@@ -139,6 +149,11 @@ func (stats pcStatList) formatJson() {
 	}
 	os.Stdout.Write(b)
 	fmt.Println("")
+}
+
+func (stats pcStatList) formatHistogram() {
+	ws := getwinsize()
+	fmt.Printf("%v\n", ws)
 }
 
 func getMincore(fname string) pcStat {
@@ -231,4 +246,15 @@ func getMincore(fname string) pcStat {
 	pcs.Percent = (float64(pcs.Cached) / float64(pcs.Pages)) * 100.00
 
 	return pcs
+}
+
+func getwinsize() winsize {
+	ws := winsize{}
+	_, _, err := syscall.Syscall(syscall.SYS_IOCTL,
+		uintptr(0), uintptr(syscall.TIOCGWINSZ),
+		uintptr(unsafe.Pointer(&ws)))
+	if err != 0 {
+		log.Fatalf("TIOCGWINSZ failed to get terminal size: %s\n", err)
+	}
+	return ws
 }
