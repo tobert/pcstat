@@ -43,14 +43,46 @@ pcstat <-json <-pps>|-terse|-default> <-nohdr> <-bname> file file file
 
 ## Examples
 
+### Default output
+
+The default output is designed to be easy for humans to read at a glance
+and should look nice in any fixed-width font.
+
 ```
 atobey@brak ~ $ pcstat testfile3
 |-----------+----------------+------------+-----------+---------|
 | Name      | Size           | Pages      | Cached    | Percent |
 |-----------+----------------+------------+-----------+---------|
+| LICENSE   | 11323          | 3          | 0         | 000.000 |
+| README.md | 6768           | 2          | 2         | 100.000 |
+| pcstat    | 3065456        | 749        | 749       | 100.000 |
+| pcstat.go | 9687           | 3          | 3         | 100.000 |
 | testfile3 | 102401024      | 25001      | 60        | 000.240 |
 |-----------+----------------+------------+-----------+---------|
 ```
+
+### Terse output
+
+Meant to be machine readable and easy to process with standard shell
+tools and scripts. Note: No attempt is made to escape characters for
+proper CSV at this time.
+
+```
+pcstat -terse -bname *
+name,size,timestamp,mtime,pages,cached,percent
+LICENSE,11323,1400767725,1400492571,3,0,0
+README.md,6185,1400767725,1400767719,2,2,100
+pcstat,3065456,1400767725,1400766869,749,749,100
+pcstat.go,9687,1400767725,1400766807,3,3,100
+testfile3,102401024,1400767725,1400761247,25001,60,0.23999040038398464
+```
+
+### JSON output
+
+The 'status' field will always be empty unless you add the -pps flag, which
+will cause status to be populated with an array of booleans, one per page
+in the file indicated whether it's cached or not. This can get spammy with
+big files so it's off by default.
 
 ```
 atobey@brak ~ $ pcstat -json testfile3 |json_pp
@@ -69,13 +101,21 @@ atobey@brak ~ $ pcstat -json testfile3 |json_pp
 ]
 ```
 
+### Histogram output
+
+Your terminal and font need to support the Block Elements section of Unicode
+for this to work. Even then, the output is inconsistent in my testing, so
+YMMV. See http://www.unicode.org/charts/PDF/U2580.pdf
+
+The number after the filename is the number of pages in the file. This might
+be removed in the future.
+
 ```
 atobey@brak ~ $ pcstat -bname -histo *
 LICENSE          3 ▁▁▁
 README.md        2 ██
 pcstat         749 █████████████████████████████████████████████████
 pcstat.go        3 ███
-spark            1 ▁
 testfile      2560 ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
 testfile2        3 ▁▁▁
 testfile3    25001 ▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
