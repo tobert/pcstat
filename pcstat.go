@@ -181,15 +181,15 @@ func (stats pcStatList) formatHistogram() {
 					avg := total / fbsz
 					if total == 0 {
 						fmt.Print("\u2581") // lower 1/8 block = 0
-					} else if avg < 16.67 {
+					} else if avg < 0.16 {
 						fmt.Print("\u2582") // lower 2/8 block
-					} else if avg < 33.33 {
+					} else if avg < 0.33 {
 						fmt.Print("\u2583") // lower 3/8 block
-					} else if avg < 50.00 {
+					} else if avg < 0.50 {
 						fmt.Print("\u2584") // lower 4/8 block
-					} else if avg < 66.66 {
+					} else if avg < 0.66 {
 						fmt.Print("\u2585") // lower 5/8 block
-					} else if avg < 83.33 {
+					} else if avg < 0.83 {
 						fmt.Print("\u2586") // lower 6/8 block
 					} else if avg < 1.00 {
 						fmt.Print("\u2587") // lower 7/8 block
