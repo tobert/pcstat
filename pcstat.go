@@ -78,8 +78,12 @@ func main() {
 	// all non-flag arguments are considered to be filenames
 	// this works well with shell globbing
 	// file order is preserved throughout this program
-	stats := make(pcStatList, len(flag.Args()))
+	if len(flag.Args()) == 0 {
+		flag.Usage()
+		os.Exit(1)
+	}
 
+	stats := make(pcStatList, len(flag.Args()))
 	for i, fname := range flag.Args() {
 		stats[i] = getMincore(fname, ppsFlag || histoFlag)
 	}
