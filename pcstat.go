@@ -24,6 +24,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -83,9 +84,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	stats := make(pcStatList, len(flag.Args()))
-	for i, fname := range flag.Args() {
-		stats[i] = getMincore(fname, ppsFlag || histoFlag)
+	stats := make(pcStatList, 0, len(flag.Args()))
+	var stat *pcStat
+	var err error
+	for _, fname := range flag.Args() {
+		stat, err = getMincore(fname, ppsFlag || histoFlag)
+		if err != nil {
+			log.Printf("skipping %q: %v", fname, err)
+		} else {
+			stats = append(stats, *stat)
+		}
 	}
 
 	if jsonFlag {
@@ -209,10 +217,10 @@ func (stats pcStatList) formatHistogram() {
 	}
 }
 
-func getMincore(fname string, retpps bool) pcStat {
+func getMincore(fname string, retpps bool) (*pcStat, error) {
 	f, err := os.Open(fname)
 	if err != nil {
-		log.Fatalf("Could not open file '%s' for read: %s\n", fname, err)
+		return nil, fmt.Errorf("could not open file for read: %v", err)
 	}
 	defer f.Close()
 
@@ -223,16 +231,19 @@ func getMincore(fname string, retpps bool) pcStat {
 	// mincore() call.
 	fi, err := f.Stat()
 	if err != nil {
-		log.Fatalf("Could not stat file %s: %s\n", fname, err)
+		return nil, fmt.Errorf("could not stat file: %v", err)
 	}
 	if fi.Size() == 0 {
-		log.Fatalf("%s appears to be 0 bytes in length\n", fname)
+		return nil, errors.New("appears to be 0 bytes in length")
+	}
+	if fi.IsDir() {
+		return nil, errors.New("file is a directory")
 	}
 
 	// []byte slice
 	mmap, err := syscall.Mmap(int(f.Fd()), 0, int(fi.Size()), syscall.PROT_NONE, syscall.MAP_SHARED)
 	if err != nil {
-		log.Fatalf("Could not mmap file '%s': %s\n", fname, err)
+		return nil, fmt.Errorf("could not mmap: %v", err)
 	}
 	// TODO: check for MAP_FAILED which is ((void *) -1)
 	// but maybe unnecessary since it looks like errno is always set when MAP_FAILED
@@ -258,7 +269,7 @@ func getMincore(fname string, retpps bool) pcStat {
 	// with the LSB set if the page in that position is currently in VFS cache
 	ret, _, err := syscall.Syscall(syscall.SYS_MINCORE, mmap_ptr, size_ptr, vec_ptr)
 	if ret != 0 {
-		log.Fatalf("syscall SYS_MINCORE failed: %s", err)
+		return nil, fmt.Errorf("syscall SYS_MINCORE failed: %v", err)
 	}
 	defer syscall.Munmap(mmap)
 
@@ -298,7 +309,7 @@ func getMincore(fname string, retpps bool) pcStat {
 	// see the README.md for how to produce one
 	pcs.Percent = (float64(pcs.Cached) / float64(pcs.Pages)) * 100.00
 
-	return pcs
+	return &pcs, nil
 }
 
 func getwinsize() winsize {
