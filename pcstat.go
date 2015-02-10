@@ -60,11 +60,13 @@ type winsize struct {
 }
 
 var (
+	pidFlag                                                       int
 	terseFlag, nohdrFlag, jsonFlag, ppsFlag, histoFlag, bnameFlag bool
 )
 
 func init() {
 	// TODO: error on useless/broken combinations
+	flag.IntVar(&pidFlag, "pid", 0, "show all open maps for the given pid")
 	flag.BoolVar(&terseFlag, "terse", false, "show terse output")
 	flag.BoolVar(&nohdrFlag, "nohdr", false, "omit the header from terse & text output")
 	flag.BoolVar(&jsonFlag, "json", false, "return data in JSON format")
@@ -75,19 +77,20 @@ func init() {
 
 func main() {
 	flag.Parse()
+	files := flag.Args()
 
 	// all non-flag arguments are considered to be filenames
 	// this works well with shell globbing
 	// file order is preserved throughout this program
-	if len(flag.Args()) == 0 {
+	if len(files) == 0 {
 		flag.Usage()
 		os.Exit(1)
 	}
 
-	stats := make(pcStatList, 0, len(flag.Args()))
+	stats := make(pcStatList, 0, len(files))
 	var stat *pcStat
 	var err error
-	for _, fname := range flag.Args() {
+	for _, fname := range files {
 		stat, err = getMincore(fname, ppsFlag || histoFlag)
 		if err != nil {
 			log.Printf("skipping %q: %v", fname, err)
