@@ -55,6 +55,7 @@ func main() {
 	files := flag.Args()
 
 	if pidFlag != 0 {
+		pcstat.SwitchMountNs(pidFlag)
 		maps := getPidMaps(pidFlag)
 		files = append(files, maps...)
 	}
