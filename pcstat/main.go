@@ -35,6 +35,8 @@ import (
 	"syscall"
 	"time"
 	"unsafe"
+
+	"github.com/tobert/pcstat"
 )
 
 // pcStat: page cache status
@@ -249,54 +251,18 @@ func getMincore(fname string, retpps bool) (*pcStat, error) {
 		return nil, errors.New("file is a directory")
 	}
 
-	// []byte slice
-	mmap, err := syscall.Mmap(int(f.Fd()), 0, int(fi.Size()), syscall.PROT_NONE, syscall.MAP_SHARED)
+	pcs := pcStat{fname, fi.Size(), time.Now(), fi.ModTime(), 0, 0, 0, 0.0, []bool{}}
+
+	// get the mincore data from the OS
+	mc, err := pcstat.FileMincore(f, fi.Size())
 	if err != nil {
-		return nil, fmt.Errorf("could not mmap: %v", err)
+		return nil, err
 	}
-	// TODO: check for MAP_FAILED which is ((void *) -1)
-	// but maybe unnecessary since it looks like errno is always set when MAP_FAILED
-
-	// one byte per page, only LSB is used, remainder is reserved and clear
-	vecsz := (fi.Size() + int64(os.Getpagesize()) - 1) / int64(os.Getpagesize())
-	vec := make([]byte, vecsz)
-
-	// get all of the arguments to the mincore syscall converted to uintptr
-	mmap_ptr := uintptr(unsafe.Pointer(&mmap[0]))
-	size_ptr := uintptr(fi.Size())
-	vec_ptr := uintptr(unsafe.Pointer(&vec[0]))
-
-	// get the timestamp right before the syscall
-	ts := time.Now()
-
-	// use Go's ASM to submit directly to the kernel, no C wrapper needed
-	// mincore(2): int mincore(void *addr, size_t length, unsigned char *vec);
-	// 0 on success, takes the pointer to the mmap, a size, which is the
-	// size that came from f.Stat(), and the vector, which is a pointer
-	// to the memory behind an []byte
-	// this writes a snapshot of the data into vec which a list of 8-bit flags
-	// with the LSB set if the page in that position is currently in VFS cache
-	ret, _, err := syscall.Syscall(syscall.SYS_MINCORE, mmap_ptr, size_ptr, vec_ptr)
-	if ret != 0 {
-		return nil, fmt.Errorf("syscall SYS_MINCORE failed: %v", err)
-	}
-	defer syscall.Munmap(mmap)
-
-	pcs := pcStat{fname, fi.Size(), ts, fi.ModTime(), int(vecsz), 0, 0, 0.0, []bool{}}
 
 	// only export the per-page cache mapping if it's explicitly enabled
-	// an empty "status": [] field, but NBD.
+	// emits an empty "status": [] field in the JSON when disabled, but NBD.
 	if retpps {
-		pcs.PPStat = make([]bool, vecsz)
-
-		// there is no bitshift only bool
-		for i, b := range vec {
-			if b%2 == 1 {
-				pcs.PPStat[i] = true
-			} else {
-				pcs.PPStat[i] = false
-			}
-		}
+		pcs.PPStat = mc
 	}
 
 	// convert long paths to their basename with the -bname flag
@@ -306,13 +272,14 @@ func getMincore(fname string, retpps bool) (*pcStat, error) {
 		pcs.Name = path.Base(fname)
 	}
 
-	for _, b := range vec {
-		if b%2 == 1 {
+	for _, b := range mc {
+		if b {
 			pcs.Cached++
-		} else {
-			pcs.Uncached++
 		}
 	}
+
+	pcs.Pages = len(mc)
+	pcs.Uncached = pcs.Pages - pcs.Cached
 
 	// convert to float for the occasional sparsely-cached file
 	// see the README.md for how to produce one
