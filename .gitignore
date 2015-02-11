@@ -25,4 +25,4 @@ _testmain.go
 *.exe
 *.test
 
-pcstat
+pcstat/pcstat
