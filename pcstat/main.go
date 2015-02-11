@@ -106,14 +106,16 @@ func getPidMaps(pid int) []string {
 	defer f.Close()
 
 	scanner := bufio.NewScanner(f)
-	maps := make([]string, 0)
+
+	// use a map to help avoid duplicates
+	maps := make(map[string]bool)
 
 	for scanner.Scan() {
 		line := scanner.Text()
 		parts := strings.Fields(line)
 		if len(parts) == 6 && strings.HasPrefix(parts[5], "/") {
 			// found something that looks like a file
-			maps = append(maps, parts[5])
+			maps[parts[5]] = true
 		}
 	}
 
@@ -121,6 +123,12 @@ func getPidMaps(pid int) []string {
 		log.Fatalf("reading '%s' failed: %s", fname, err)
 	}
 
-	return maps
+	// convert back to a list
+	out := make([]string, 0, len(maps))
+	for key := range maps {
+		out = append(out, key)
+	}
+
+	return out
 }
 
