@@ -23,6 +23,7 @@ package main
  */
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -78,6 +79,11 @@ func init() {
 func main() {
 	flag.Parse()
 	files := flag.Args()
+
+	if pidFlag != 0 {
+		maps := getPidMaps(pidFlag)
+		files = append(files, maps...)
+	}
 
 	// all non-flag arguments are considered to be filenames
 	// this works well with shell globbing
@@ -313,6 +319,34 @@ func getMincore(fname string, retpps bool) (*pcStat, error) {
 	pcs.Percent = (float64(pcs.Cached) / float64(pcs.Pages)) * 100.00
 
 	return &pcs, nil
+}
+
+func getPidMaps(pid int) []string {
+	fname := fmt.Sprintf("/proc/%d/maps", pid)
+
+	f, err := os.Open(fname)
+	if err != nil {
+		log.Fatalf("could not open '%s' for read: %v", fname, err)
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	maps := make([]string, 0)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		parts := strings.Fields(line)
+		if len(parts) == 6 && strings.HasPrefix(parts[5], "/") {
+			// found something that looks like a file
+			maps = append(maps, parts[5])
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatalf("reading '%s' failed: %s", fname, err)
+	}
+
+	return maps
 }
 
 func getwinsize() winsize {
