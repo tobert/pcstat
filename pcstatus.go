@@ -53,11 +53,9 @@ func GetPcStatus(fname string) (PcStatus, error) {
 	// what will be in there when the file is truncated between here and the
 	// mincore() call.
 	fi, err := f.Stat()
+
 	if err != nil {
 		return pcs, fmt.Errorf("could not stat file: %v", err)
-	}
-	if fi.Size() == 0 {
-		return pcs, errors.New("appears to be 0 bytes in length")
 	}
 	if fi.IsDir() {
 		return pcs, errors.New("file is a directory")
