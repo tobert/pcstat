@@ -30,8 +30,8 @@ import (
 
 // adapted from https://groups.google.com/d/msg/golang-nuts/8d4pOPmSL9Q/H6WUqbGNELEJ
 type winsize struct {
-       ws_row, ws_col       uint16
-       ws_xpixel, ws_ypixel uint16
+	ws_row, ws_col       uint16
+	ws_xpixel, ws_ypixel uint16
 }
 
 func getwinsize() winsize {

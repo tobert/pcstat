@@ -76,9 +76,9 @@ func main() {
 			continue
 		}
 
-	// convert long paths to their basename with the -bname flag
-	// this overwrites the original filename in pcs but it doesn't matter since
-	// it's not used to access the file again -- and should not be!
+		// convert long paths to their basename with the -bname flag
+		// this overwrites the original filename in pcs but it doesn't matter since
+		// it's not used to access the file again -- and should not be!
 		if bnameFlag {
 			status.Name = path.Base(fname)
 		}
@@ -132,4 +132,3 @@ func getPidMaps(pid int) []string {
 
 	return out
 }
-
