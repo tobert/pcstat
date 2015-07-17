@@ -35,23 +35,23 @@ import (
 type PcStatusList []pcstat.PcStatus
 
 func (stats PcStatusList) formatText() {
-	maxName := stats.maxName()
+	maxName := stats.maxNameLen()
 
 	// create horizontal grid line
-	pad := strings.Repeat("-", len(maxName)+2)
+	pad := strings.Repeat("-", maxName+2)
 	hr := fmt.Sprintf("|%s+----------------+------------+-----------+---------|", pad)
 
 	fmt.Println(hr)
 
 	// -nohdr may be chosen to save 2 lines of precious vertical space
 	if !nohdrFlag {
-		pad = strings.Repeat(" ", len(maxName)-4)
+		pad = strings.Repeat(" ", maxName-4)
 		fmt.Printf("| Name%s | Size           | Pages      | Cached    | Percent |\n", pad)
 		fmt.Println(hr)
 	}
 
 	for _, pcs := range stats {
-		pad = strings.Repeat(" ", len(maxName)-len(pcs.Name))
+		pad = strings.Repeat(" ", maxName-len(pcs.Name))
 
 		// %07.3f was chosen to make it easy to scan the percentages vertically
 		// I tried a few different formats only this one kept the decimals aligned
@@ -97,13 +97,13 @@ func (stats PcStatusList) formatJson(clearpps bool) {
 // https://github.com/holman/spark
 func (stats PcStatusList) formatHistogram() {
 	ws := getwinsize()
-	maxName := stats.maxName()
+	maxName := stats.maxNameLen()
 
 	// block elements are wider than characters, so only use 1/2 the available columns
-	buckets := (int(ws.ws_col)-len(maxName))/2 - 10
+	buckets := (int(ws.ws_col)-maxName)/2 - 10
 
 	for _, pcs := range stats {
-		pad := strings.Repeat(" ", len(maxName)-len(pcs.Name))
+		pad := strings.Repeat(" ", maxName-len(pcs.Name))
 		fmt.Printf("%s%s % 8d ", pcs.Name, pad, pcs.Pages)
 
 		// when there is enough room display on/off for every page
@@ -162,14 +162,18 @@ func (stats PcStatusList) formatHistogram() {
 	}
 */
 
-// getLongestName returns the len of longest filename in the stat list
+// maxNameLen returns the len of longest filename in the stat list
 // if the bnameFlag is set, this will return the max basename len
-func (stats PcStatusList) maxName() string {
-	var maxName string
+func (stats PcStatusList) maxNameLen() int {
+	var maxName int
 	for _, pcs := range stats {
-		if len(pcs.Name) > len(maxName) {
-			maxName = pcs.Name
+		if len(pcs.Name) > maxName {
+			maxName = len(pcs.Name)
 		}
+	}
+
+	if maxName < 5 {
+		maxName = 5
 	}
 	return maxName
 }
