@@ -19,15 +19,16 @@ package pcstat
 import (
 	"fmt"
 	"os"
-	"syscall"
 	"unsafe"
+
+	"golang.org/x/sys/unix"
 )
 
 // mmap the given file, get the mincore vector, then
 // return it as an []bool
 func FileMincore(f *os.File, size int64) ([]bool, error) {
 	// mmap is a []byte
-	mmap, err := syscall.Mmap(int(f.Fd()), 0, int(size), syscall.PROT_NONE, syscall.MAP_SHARED)
+	mmap, err := unix.Mmap(int(f.Fd()), 0, int(size), unix.PROT_NONE, unix.MAP_SHARED)
 	if err != nil {
 		return nil, fmt.Errorf("could not mmap: %v", err)
 	}
@@ -50,11 +51,11 @@ func FileMincore(f *os.File, size int64) ([]bool, error) {
 	// to the memory behind an []byte
 	// this writes a snapshot of the data into vec which a list of 8-bit flags
 	// with the LSB set if the page in that position is currently in VFS cache
-	ret, _, err := syscall.Syscall(syscall.SYS_MINCORE, mmap_ptr, size_ptr, vec_ptr)
+	ret, _, err := unix.Syscall(unix.SYS_MINCORE, mmap_ptr, size_ptr, vec_ptr)
 	if ret != 0 {
 		return nil, fmt.Errorf("syscall SYS_MINCORE failed: %v", err)
 	}
-	defer syscall.Munmap(mmap)
+	defer unix.Munmap(mmap)
 
 	mc := make([]bool, vecsz)
 

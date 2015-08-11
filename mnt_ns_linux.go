@@ -22,7 +22,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"syscall"
+
+	"golang.org/x/sys/unix"
 )
 
 // not available before Go 1.4
@@ -62,7 +63,7 @@ func getMountNs(pid int) int {
 }
 
 func setns(fd int) error {
-	ret, _, err := syscall.Syscall(SYS_SETNS, uintptr(uint(fd)), uintptr(CLONE_NEWNS), 0)
+	ret, _, err := unix.Syscall(SYS_SETNS, uintptr(uint(fd)), uintptr(CLONE_NEWNS), 0)
 	if ret != 0 {
 		return fmt.Errorf("syscall SYS_SETNS failed: %v", err)
 	}
