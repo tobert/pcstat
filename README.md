@@ -11,6 +11,7 @@ and has some build problems.
 I wrote this is so that Apache Cassandra users can see if ssTables are being
 cached. If $GOPATH/bin is in your PATH, this will get it installed:
 
+    go get golang.org/x/sys/unix
     go get github.com/tobert/pcstat/pcstat
     pcstat /var/lib/cassandra/data/*/*/*-Data.db
 
