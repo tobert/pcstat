@@ -168,7 +168,7 @@ atobey@brak ~/src/pcstat $ ./pcstat testfile
 
 ## Requirements
 
-Any Go 1.x or higher should work fine. No external libraries are required.
+Go 1.4 or higher and golang.org/x/sys/unix.
 
 From the mincore(2) man page:
 
