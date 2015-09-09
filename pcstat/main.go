@@ -35,8 +35,9 @@ import (
 )
 
 var (
-	pidFlag                                                       int
-	terseFlag, nohdrFlag, jsonFlag, ppsFlag, histoFlag, bnameFlag bool
+	pidFlag                                     int
+	terseFlag, nohdrFlag, jsonFlag, unicodeFlag bool
+	plainFlag, ppsFlag, histoFlag, bnameFlag    bool
 )
 
 func init() {
@@ -45,6 +46,8 @@ func init() {
 	flag.BoolVar(&terseFlag, "terse", false, "show terse output")
 	flag.BoolVar(&nohdrFlag, "nohdr", false, "omit the header from terse & text output")
 	flag.BoolVar(&jsonFlag, "json", false, "return data in JSON format")
+	flag.BoolVar(&unicodeFlag, "unicode", false, "return data with unicode box characters")
+	flag.BoolVar(&plainFlag, "plain", false, "return data with no box characters")
 	flag.BoolVar(&ppsFlag, "pps", false, "include the per-page status in JSON output")
 	flag.BoolVar(&histoFlag, "histo", false, "print a simple histogram instead of raw data")
 	flag.BoolVar(&bnameFlag, "bname", false, "convert paths to basename to narrow the output")
@@ -92,6 +95,10 @@ func main() {
 		stats.formatTerse()
 	} else if histoFlag {
 		stats.formatHistogram()
+	} else if unicodeFlag {
+		stats.formatUnicode()
+	} else if plainFlag {
+		stats.formatPlain()
 	} else {
 		stats.formatText()
 	}

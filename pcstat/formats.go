@@ -34,19 +34,51 @@ import (
 
 type PcStatusList []pcstat.PcStatus
 
+func (stats PcStatusList) formatUnicode() {
+	maxName := stats.maxNameLen()
+
+	// create horizontal grid line
+	pad := strings.Repeat("─", maxName+2)
+	top := fmt.Sprintf("┌%s┬────────────────┬────────────┬───────────┬─────────┐", pad)
+	hr := fmt.Sprintf("├%s┼────────────────┼────────────┼───────────┼─────────┤", pad)
+	bot := fmt.Sprintf("└%s┴────────────────┴────────────┴───────────┴─────────┘", pad)
+
+	fmt.Println(top)
+
+	// -nohdr may be chosen to save 2 lines of precious vertical space
+	if !nohdrFlag {
+		pad = strings.Repeat(" ", maxName-4)
+		fmt.Printf("│ Name%s │ Size (bytes)   │ Pages      │ Cached    │ Percent │\n", pad)
+		fmt.Println(hr)
+	}
+
+	for _, pcs := range stats {
+		pad = strings.Repeat(" ", maxName-len(pcs.Name))
+
+		// %07.3f was chosen to make it easy to scan the percentages vertically
+		// I tried a few different formats only this one kept the decimals aligned
+		fmt.Printf("│ %s%s │ %-15d│ %-11d│ %-10d│ %07.3f │\n",
+			pcs.Name, pad, pcs.Size, pcs.Pages, pcs.Cached, pcs.Percent)
+	}
+
+	fmt.Println(bot)
+}
+
 func (stats PcStatusList) formatText() {
 	maxName := stats.maxNameLen()
 
 	// create horizontal grid line
 	pad := strings.Repeat("-", maxName+2)
+	top := fmt.Sprintf("+%s+----------------+------------+-----------+---------+", pad)
 	hr := fmt.Sprintf("|%s+----------------+------------+-----------+---------|", pad)
+	bot := fmt.Sprintf("+%s+----------------+------------+-----------+---------+", pad)
 
-	fmt.Println(hr)
+	fmt.Println(top)
 
 	// -nohdr may be chosen to save 2 lines of precious vertical space
 	if !nohdrFlag {
 		pad = strings.Repeat(" ", maxName-4)
-		fmt.Printf("| Name%s | Size           | Pages      | Cached    | Percent |\n", pad)
+		fmt.Printf("| Name%s | Size (bytes)   | Pages      | Cached    | Percent |\n", pad)
 		fmt.Println(hr)
 	}
 
@@ -59,7 +91,26 @@ func (stats PcStatusList) formatText() {
 			pcs.Name, pad, pcs.Size, pcs.Pages, pcs.Cached, pcs.Percent)
 	}
 
-	fmt.Println(hr)
+	fmt.Println(bot)
+}
+
+func (stats PcStatusList) formatPlain() {
+	maxName := stats.maxNameLen()
+
+	// -nohdr may be chosen to save 2 lines of precious vertical space
+	if !nohdrFlag {
+		pad := strings.Repeat(" ", maxName-4)
+		fmt.Printf("Name%s  Size (bytes)    Pages       Cached     Percent\n", pad)
+	}
+
+	for _, pcs := range stats {
+		pad := strings.Repeat(" ", maxName-len(pcs.Name))
+
+		// %07.3f was chosen to make it easy to scan the percentages vertically
+		// I tried a few different formats only this one kept the decimals aligned
+		fmt.Printf("%s%s  %-15d %-11d %-10d %07.3f\n",
+			pcs.Name, pad, pcs.Size, pcs.Pages, pcs.Cached, pcs.Percent)
+	}
 }
 
 func (stats PcStatusList) formatTerse() {

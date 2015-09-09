@@ -40,6 +40,9 @@ pcstat <-json <-pps>|-terse|-default> <-nohdr> <-bname> file file file
  -histo print a histogram using unicode block characters
  -nohdr don't print the column header in terse or default format
  -bname use basename(file) in the output (use for long paths)
+ -plain return data with no box characters
+ -unicode return data with unicode box characters
+
 ```
 
 ## Examples
