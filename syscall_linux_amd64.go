@@ -16,5 +16,5 @@ package pcstat
  * limitations under the License.
  */
 
-// https://github.com/torvalds/linux/blob/master/arch/x86/syscalls/syscall_64.tbl
+// https://github.com/torvalds/linux/blob/master/arch/x86/entry/syscalls/syscall_64.tbl
 const SYS_SETNS = 308
