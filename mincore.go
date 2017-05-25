@@ -27,10 +27,10 @@ import (
 // mmap the given file, get the mincore vector, then
 // return it as an []bool
 func FileMincore(f *os.File, size int64) ([]bool, error) {
-        //skip could not mmap error when the file size is 0
-        if int(size) == 0 {
-           return nil, nil
-        }
+	//skip could not mmap error when the file size is 0
+	if int(size) == 0 {
+		return nil, nil
+	}
 	// mmap is a []byte
 	mmap, err := unix.Mmap(int(f.Fd()), 0, int(size), unix.PROT_NONE, unix.MAP_SHARED)
 	if err != nil {
