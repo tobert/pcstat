@@ -36,7 +36,6 @@ pcstat <-json <-pps>|-terse|-default> <-nohdr> <-bname> file file file
  -json output will be JSON
    -pps include the per-page information in the output (can be huge!)
  -terse print terse machine-parseable output
- -default print ascii tables
  -histo print a histogram using unicode block characters
  -nohdr don't print the column header in terse or default format
  -bname use basename(file) in the output (use for long paths)
