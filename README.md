@@ -180,7 +180,7 @@ From the mincore(2) man page:
 
 ## Author
 
-Al Tobey <atobey@datastax.com> @AlTobey
+A. Tobey <tobert@gmail.com> @AlTobey
 
 ## License
 
