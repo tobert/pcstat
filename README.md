@@ -41,7 +41,8 @@ pcstat <-json <-pps>|-terse|-default> <-nohdr> <-bname> file file file
  -bname use basename(file) in the output (use for long paths)
  -plain return data with no box characters
  -unicode return data with unicode box characters
-
+ -pid int show all open maps for the given pid
+ -top int show top x cached files
 ```
 
 ## Examples
