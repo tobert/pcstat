@@ -23,16 +23,16 @@ type Process interface {
 	Executable() string
 }
 
-type ProcessSlice [] Process
+type ProcessSlice []Process
 
 func (a ProcessSlice) Len() int {
-    return len(a)
+	return len(a)
 }
-func (a ProcessSlice) Swap(i, j int){
-    a[i], a[j] = a[j], a[i]
+func (a ProcessSlice) Swap(i, j int) {
+	a[i], a[j] = a[j], a[i]
 }
 func (a ProcessSlice) Less(i, j int) bool {
-    return a[j].RSS() < a[i].RSS()
+	return a[j].RSS() < a[i].RSS()
 }
 
 // Processes returns all processes.

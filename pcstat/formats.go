@@ -34,15 +34,14 @@ import (
 
 type PcStatusList []pcstat.PcStatus
 
-
 func (a PcStatusList) Len() int {
-    return len(a)
+	return len(a)
 }
-func (a PcStatusList) Swap(i, j int){
-    a[i], a[j] = a[j], a[i]
+func (a PcStatusList) Swap(i, j int) {
+	a[i], a[j] = a[j], a[i]
 }
 func (a PcStatusList) Less(i, j int) bool {
-    return a[j].Cached < a[i].Cached
+	return a[j].Cached < a[i].Cached
 }
 
 func (stats PcStatusList) formatUnicode() {

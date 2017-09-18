@@ -30,7 +30,6 @@ func (p *UnixProcess) PPid() int {
 	return p.ppid
 }
 
-
 func (p *UnixProcess) RSS() int {
 	return p.rss
 }
