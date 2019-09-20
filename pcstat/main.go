@@ -29,6 +29,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"sort"
 	"strings"
 
 	"github.com/tobert/pcstat"
@@ -38,6 +39,7 @@ var (
 	pidFlag                                     int
 	terseFlag, nohdrFlag, jsonFlag, unicodeFlag bool
 	plainFlag, ppsFlag, histoFlag, bnameFlag    bool
+	sortFlag bool
 )
 
 func init() {
@@ -51,6 +53,7 @@ func init() {
 	flag.BoolVar(&ppsFlag, "pps", false, "include the per-page status in JSON output")
 	flag.BoolVar(&histoFlag, "histo", false, "print a simple histogram instead of raw data")
 	flag.BoolVar(&bnameFlag, "bname", false, "convert paths to basename to narrow the output")
+	flag.BoolVar(&sortFlag, "sort", false, "sort output by cached pages desc")
 }
 
 func main() {
@@ -87,6 +90,12 @@ func main() {
 		}
 
 		stats = append(stats, status)
+	}
+
+	if sortFlag {
+		sort.Slice(stats, func(i, j int) bool {
+			return stats[i].Cached > stats[j].Cached
+		})
 	}
 
 	if jsonFlag {
