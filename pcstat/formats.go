@@ -129,8 +129,8 @@ func (stats PcStatusList) formatJson(clearpps bool) {
 	// clear the per-page status when requested
 	// emits an empty "status": [] field in the JSON when disabled, but NBD.
 	if clearpps {
-		for _, pcs := range stats {
-			pcs.PPStat = nil
+		for i := range stats {
+			stats[i].PPStat = nil
 		}
 	}
 
