@@ -1,0 +1,105 @@
+before:
+  hooks:
+    - go mod tidy
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: 'SNAPSHOT-{{ .Commit }}'
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^demos:'
+      - '^configs:'
+      - Merge pull request
+      - Merge branch
+      - go mod tidy
+
+builds:
+  - main: ./pcstat
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - freebsd
+    goarch:
+      - amd64
+    #  - arm64
+      - 386
+    goarm:
+      - 7
+    ignore:
+      - goos: darwin
+        goarch: 386
+      - goos: freebsd
+        goarch: arm64
+
+nfpms:
+  - package_name: pcstat
+    homepage: https://github.com/tobert/pcstat
+    description: OpenTelemetry CLI Application (Server & Client)
+    license: Apache 2.0
+    file_name_template: "{{.ProjectName}}_{{.Version}}_{{.Arch}}"
+    replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x86_64
+    formats:
+      - apk
+      - deb
+      - rpm
+
+archives:
+  - name_template: '{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+    replacements:
+      darwin: Darwin
+      linux: Linux
+      386: i386
+      amd64: x86_64
+
+dockers:
+  - image_templates:
+    - "ghcr.io/tobert/pcstat:{{ .Tag }}-amd64"
+    dockerfile: release/Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--pull"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.name={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source={{.GitURL}}"
+      - "--platform=linux/amd64"
+  - image_templates:
+    - "ghcr.io/tobert/pcstat:{{ .Tag }}-arm64v8"
+    dockerfile: release/Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--pull"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.name={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source={{.GitURL}}"
+      - "--platform=linux/arm64/v8"
+
+docker_manifests:
+  - name_template: "ghcr.io/tobert/pcstat:{{ .Tag }}"
+    image_templates:
+    - "ghcr.io/tobert/pcstat:{{ .Tag }}-amd64"
+    - "ghcr.io/tobert/pcstat:{{ .Tag }}-arm64v8"
+  - name_template: "ghcr.io/tobert/pcstat:latest"
+    image_templates:
+    - "ghcr.io/tobert/pcstat:{{ .Tag }}-amd64"
+    - "ghcr.io/tobert/pcstat:{{ .Tag }}-arm64v8"
+    use: docker
