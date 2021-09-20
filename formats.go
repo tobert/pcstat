@@ -29,7 +29,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/tobert/pcstat/pkg"
+	pcstat "github.com/tobert/pcstat/pkg"
 )
 
 type PcStatusList []pcstat.PcStatus
@@ -55,9 +55,7 @@ func (stats PcStatusList) formatUnicode() {
 	for _, pcs := range stats {
 		pad = strings.Repeat(" ", maxName-len(pcs.Name))
 
-		// %07.3f was chosen to make it easy to scan the percentages vertically
-		// I tried a few different formats only this one kept the decimals aligned
-		fmt.Printf("│ %s%s │ %-15d│ %-11d│ %-10d│ %07.3f │\n",
+		fmt.Printf("│ %s%s │ %-15d│ %-11d│ %-10d│ %7.3f │\n",
 			pcs.Name, pad, pcs.Size, pcs.Pages, pcs.Cached, pcs.Percent)
 	}
 
@@ -85,9 +83,7 @@ func (stats PcStatusList) formatText() {
 	for _, pcs := range stats {
 		pad = strings.Repeat(" ", maxName-len(pcs.Name))
 
-		// %07.3f was chosen to make it easy to scan the percentages vertically
-		// I tried a few different formats only this one kept the decimals aligned
-		fmt.Printf("| %s%s | %-15d| %-11d| %-10d| %07.3f |\n",
+		fmt.Printf("| %s%s | %-15d| %-11d| %-10d| %7.3f |\n",
 			pcs.Name, pad, pcs.Size, pcs.Pages, pcs.Cached, pcs.Percent)
 	}
 
@@ -106,9 +102,7 @@ func (stats PcStatusList) formatPlain() {
 	for _, pcs := range stats {
 		pad := strings.Repeat(" ", maxName-len(pcs.Name))
 
-		// %07.3f was chosen to make it easy to scan the percentages vertically
-		// I tried a few different formats only this one kept the decimals aligned
-		fmt.Printf("%s%s  %-15d %-11d %-10d %07.3f\n",
+		fmt.Printf("%s%s  %-15d %-11d %-10d %7.3f\n",
 			pcs.Name, pad, pcs.Size, pcs.Pages, pcs.Cached, pcs.Percent)
 	}
 }
