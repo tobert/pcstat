@@ -63,7 +63,7 @@ func getMountNs(pid int) int {
 }
 
 func setns(fd int) error {
-	ret, _, err := unix.Syscall(SYS_SETNS, uintptr(uint(fd)), uintptr(CLONE_NEWNS), 0)
+	ret, _, err := unix.Syscall(unix.SYS_SETNS, uintptr(uint(fd)), uintptr(CLONE_NEWNS), 0)
 	if ret != 0 {
 		return fmt.Errorf("syscall SYS_SETNS failed: %v", err)
 	}
