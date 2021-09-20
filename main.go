@@ -32,7 +32,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/tobert/pcstat"
+	"github.com/tobert/pcstat/pkg"
 )
 
 var (
