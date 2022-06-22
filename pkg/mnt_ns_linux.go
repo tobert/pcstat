@@ -41,7 +41,7 @@ func SwitchMountNs(pid int) {
 }
 
 func getMountNs(pid int) int {
-	fname := fmt.Sprintf("/proc/%d/ns/mnt")
+	fname := fmt.Sprintf("/proc/%d/ns/mnt", pid)
 	nss, err := os.Readlink(fname)
 
 	// probably permission denied or namespaces not compiled into the kernel
