@@ -11,8 +11,7 @@ and has some build problems.
 I wrote this is so that Apache Cassandra users can see if ssTables are being
 cached. If $GOPATH/bin is in your PATH, this will get it installed:
 
-    go get golang.org/x/sys/unix
-    go get github.com/tobert/pcstat/pcstat
+    go install github.com/tobert/pcstat@latest
     pcstat /var/lib/cassandra/data/*/*/*-Data.db
 
 If you don't want to mess around with building the software, binaries are provided
@@ -170,7 +169,7 @@ atobey@brak ~/src/pcstat $ ./pcstat testfile
 
 ## Requirements
 
-Go 1.4 or higher and golang.org/x/sys/unix.
+Go 1.17 or higher.
 
 From the mincore(2) man page:
 
@@ -180,7 +179,7 @@ From the mincore(2) man page:
 
 ## Author
 
-A. Tobey <tobert@gmail.com> @MissAmyTobey
+A. Tobey <tobert@gmail.com> @renice@hachyderm.io
 
 ## License
 
