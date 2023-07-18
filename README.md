@@ -169,7 +169,7 @@ atobey@brak ~/src/pcstat $ ./pcstat testfile
 
 ## Requirements
 
-Go 1.4 or higher and golang.org/x/sys/unix.
+Go 1.17 or higher.
 
 From the mincore(2) man page:
 
@@ -179,7 +179,7 @@ From the mincore(2) man page:
 
 ## Author
 
-A. Tobey <tobert@gmail.com> @MissAmyTobey
+A. Tobey <tobert@gmail.com> @renice@hachyderm.io
 
 ## License
 
