@@ -20,14 +20,12 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 
 	"golang.org/x/sys/unix"
 )
-
-// not available before Go 1.4
-const CLONE_NEWNS = 0x00020000 /* mount namespace */
 
 // if the pid is in a different mount namespace (e.g. Docker)
 // the paths will be all wrong, so try to enter that namespace
@@ -36,7 +34,7 @@ func SwitchMountNs(pid int) {
 	pidns := getMountNs(pid)
 
 	if myns != pidns {
-		setns(pidns)
+		setns(pid)
 	}
 }
 
@@ -63,10 +61,26 @@ func getMountNs(pid int) int {
 }
 
 func setns(fd int) error {
-	ret, _, err := unix.Syscall(unix.SYS_SETNS, uintptr(uint(fd)), uintptr(CLONE_NEWNS), 0)
-	if ret != 0 {
-		return fmt.Errorf("syscall SYS_SETNS failed: %v", err)
+	// Lock the system thread to prevent the goroutine from
+	// switching to another system thread after call setnx
+	runtime.LockOSThread()
+
+	// Go runtime call clone to create a thread, and the flags parameter passed contains CLONE_FS.
+	// Only by calling unshare to remove CLONE_FS then can setns set CLONE_NEWNS ok.
+	// See man 2 setnx get more information.
+	if err := unix.Unshare(unix.CLONE_FS); err != nil {
+		return fmt.Errorf("unshare mount namespace error: %w", err)
 	}
 
+	nsMountFileName := fmt.Sprintf("/proc/%d/ns/mnt", fd)
+	nsMountFile, err := os.Open(nsMountFileName)
+	if err != nil {
+		return fmt.Errorf("open mount namespace file error: %w", err)
+	}
+	defer nsMountFile.Close()
+
+	if err = unix.Setns(int(nsMountFile.Fd()), unix.CLONE_NEWNS); err != nil {
+		return fmt.Errorf("setns mount namespace error: %w", err)
+	}
 	return nil
 }

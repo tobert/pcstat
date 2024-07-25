@@ -32,14 +32,14 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/tobert/pcstat/pkg"
+	pcstat "github.com/tobert/pcstat/pkg"
 )
 
 var (
 	pidFlag                                     int
 	terseFlag, nohdrFlag, jsonFlag, unicodeFlag bool
 	plainFlag, ppsFlag, histoFlag, bnameFlag    bool
-	sortFlag bool
+	sortFlag                                    bool
 )
 
 func init() {
@@ -61,9 +61,9 @@ func main() {
 	files := flag.Args()
 
 	if pidFlag != 0 {
-		pcstat.SwitchMountNs(pidFlag)
 		maps := getPidMaps(pidFlag)
 		files = append(files, maps...)
+		pcstat.SwitchMountNs(pidFlag)
 	}
 
 	// all non-flag arguments are considered to be filenames
