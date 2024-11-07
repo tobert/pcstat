@@ -31,7 +31,7 @@ Command-line arguments are described below. Every argument following the program
 flags is considered a file for inspection.
 
 ```
-pcstat <-json <-pps>|-terse|-default> <-nohdr> <-bname> file file file
+pcstat <-json <-pps>|-terse|-default> <-nohdr> <-bname> <-cachestat> file file file
  -json output will be JSON
    -pps include the per-page information in the output (can be huge!)
  -terse print terse machine-parseable output
@@ -40,7 +40,7 @@ pcstat <-json <-pps>|-terse|-default> <-nohdr> <-bname> file file file
  -bname use basename(file) in the output (use for long paths)
  -plain return data with no box characters
  -unicode return data with unicode box characters
-
+ -cachestat use new cachestat syscall instead of mincore (kernel 6.5+, x86_64 only)
 ```
 
 ## Examples
@@ -99,6 +99,30 @@ atobey@brak ~ $ pcstat -json testfile3 |json_pp
    "uncached":  24941,
    "percent":   0.23999040038398464,
    "status":    []
+ }
+]
+```
+
+The extra statistics from the `-cachestat` option (kernel 6.5+) are only 
+included in the JSON output for now.
+
+```
+atobey@brak ~ $ pcstat -json -cachestat testfile3 |json_pp
+[
+ {
+   "filename":         "testfile3",
+   "size":             102401024,
+   "timestamp":        "2024-05-22T13:57:19.971348936Z",
+   "mtime":            "2024-05-22T12:20:47.940163295Z",
+   "pages":            25001,
+   "cached":           60,
+   "uncached":         24941,
+   "percent":          0.23999040038398464,
+   "status":           []
+   "dirty":            22,
+   "writeback":        38,
+   "evicted":          24941,
+   "recently_evicted": 24941
  }
 ]
 ```
@@ -169,13 +193,16 @@ atobey@brak ~/src/pcstat $ ./pcstat testfile
 
 ## Requirements
 
-Go 1.17 or higher.
+Go 1.18 or higher.
 
 From the mincore(2) man page:
 
 * Available since Linux 2.3.99pre1 and glibc 2.2.
 * mincore() is not specified in POSIX.1-2001, and it is not available on all UNIX implementations.
 * Before kernel 2.6.21, mincore() did not return correct information some mappings.
+
+The cachestat syscall was only added to the Linux kernel in 6.5 and is currently only 
+supported on x86_64.
 
 ## Author
 

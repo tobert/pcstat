@@ -36,9 +36,14 @@ type PcStatus struct {
 	Uncached  int       `json:"uncached"`  // number of pages that are not cached
 	Percent   float64   `json:"percent"`   // percentage of pages cached
 	PPStat    []bool    `json:"status"`    // per-page status, true if cached, false otherwise
+	// additional fields for cachestat implementation
+	Dirty           *uint64 `json:"dirty,omitempty"`            // number of dirty pages
+	Writeback       *uint64 `json:"writeback,omitempty"`        // number of pages under writeback
+	Evicted         *uint64 `json:"evicted,omitempty"`          // number of evicted pages
+	RecentlyEvicted *uint64 `json:"recently_evicted,omitempty"` // number of recently evicted pages
 }
 
-func GetPcStatus(fname string) (PcStatus, error) {
+func GetPcStatus(fname string, useCachestat bool) (PcStatus, error) {
 	pcs := PcStatus{Name: fname}
 
 	f, err := os.Open(fname)
@@ -53,7 +58,6 @@ func GetPcStatus(fname string) (PcStatus, error) {
 	// what will be in there when the file is truncated between here and the
 	// mincore() call.
 	fi, err := f.Stat()
-
 	if err != nil {
 		return pcs, fmt.Errorf("could not stat file: %v", err)
 	}
@@ -65,19 +69,43 @@ func GetPcStatus(fname string) (PcStatus, error) {
 	pcs.Timestamp = time.Now()
 	pcs.Mtime = fi.ModTime()
 
-	pcs.PPStat, err = FileMincore(f, fi.Size())
-
-	if err != nil {
-		return pcs, err
-	}
-
-	// count the number of cached pages
-	for _, b := range pcs.PPStat {
-		if b {
-			pcs.Cached++
+	if useCachestat {
+		// Use cachestat implementation
+		cstat, psize, err := FileCachestat(f, fi.Size())
+		if err != nil {
+			return pcs, err
 		}
+
+		// will be shown in json output only for now
+		dirty := cstat.Dirty
+		writeback := cstat.Writeback
+		evicted := cstat.Evicted
+		recentlyEvicted := cstat.Recently_evicted
+
+		pcs.Dirty = &dirty
+		pcs.Writeback = &writeback
+		pcs.Evicted = &evicted
+		pcs.RecentlyEvicted = &recentlyEvicted
+
+		// default for backward compatibility with mincore impl
+		pcs.Cached = int(cstat.Cache)
+		pcs.Pages = psize
+	} else {
+
+		pcs.PPStat, err = FileMincore(f, fi.Size())
+		if err != nil {
+			return pcs, err
+		}
+
+		// count the number of cached pages
+		for _, b := range pcs.PPStat {
+			if b {
+				pcs.Cached++
+			}
+		}
+		pcs.Pages = len(pcs.PPStat)
 	}
-	pcs.Pages = len(pcs.PPStat)
+
 	pcs.Uncached = pcs.Pages - pcs.Cached
 
 	// convert to float for the occasional sparsely-cached file

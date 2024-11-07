@@ -39,7 +39,7 @@ var (
 	pidFlag                                     int
 	terseFlag, nohdrFlag, jsonFlag, unicodeFlag bool
 	plainFlag, ppsFlag, histoFlag, bnameFlag    bool
-	sortFlag bool
+	sortFlag, cachestatFlag                     bool
 )
 
 func init() {
@@ -54,6 +54,7 @@ func init() {
 	flag.BoolVar(&histoFlag, "histo", false, "print a simple histogram instead of raw data")
 	flag.BoolVar(&bnameFlag, "bname", false, "convert paths to basename to narrow the output")
 	flag.BoolVar(&sortFlag, "sort", false, "sort output by cached pages desc")
+	flag.BoolVar(&cachestatFlag, "cachestat", false, "use cachestat syscall (kernel 6.5+ only)")
 }
 
 func main() {
@@ -76,7 +77,7 @@ func main() {
 
 	stats := make(PcStatusList, 0, len(files))
 	for _, fname := range files {
-		status, err := pcstat.GetPcStatus(fname)
+		status, err := pcstat.GetPcStatus(fname, cachestatFlag)
 		if err != nil {
 			log.Printf("skipping %q: %v", fname, err)
 			continue
