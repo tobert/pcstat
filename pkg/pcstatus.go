@@ -82,7 +82,9 @@ func GetPcStatus(fname string) (PcStatus, error) {
 
 	// convert to float for the occasional sparsely-cached file
 	// see the README.md for how to produce one
-	pcs.Percent = (float64(pcs.Cached) / float64(pcs.Pages)) * 100.00
+	if pcs.Pages != 0 {
+		pcs.Percent = (float64(pcs.Cached) / float64(pcs.Pages)) * 100.00
+	}
 
 	return pcs, nil
 }
